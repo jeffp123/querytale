@@ -1,0 +1,9 @@
+id: desmos
+name: Desmos
+category: school
+domains:
+  - desmos.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

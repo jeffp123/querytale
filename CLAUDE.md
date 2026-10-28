@@ -5,6 +5,8 @@ PLAN.md is the design and milestone list; build one milestone at a time.
 
 ## Commands
 
+- CI (`.github/workflows/ci.yml`) runs ruff and pytest on macOS and Ubuntu, Python 3.11 and
+  3.13, then installs the built wheel in a clean tool environment.
 - `uv sync` to install; `uv run querytale --help`
 - `uv run pytest -q`; `uv run ruff check . && uv run ruff format .`
 - Try things against a throwaway home: `QUERYTALE_HOME=/some/tmp/dir uv run querytale ...`
@@ -25,6 +27,8 @@ PLAN.md is the design and milestone list; build one milestone at a time.
 - `attribution.py`: learns generic-host owners (name in hostname, then co-occurrence);
   relearned from full history on every refresh (~1 s for a year).
 - `novelty.py`: Detector B (rare sites, bursts, episodes, tracker demotion).
+- `doctor.py`: health checks, heartbeat suggestions, busiest unclassified sites.
+  `derive.prune()` backs `querytale prune`.
 - `report.py` + `templates/report.html`: the self-contained HTML report. ECharts is vendored
   in `vendor/` (pinned 5.6.0, Apache-2.0) and inlined; a CSP blocks all network access.
   Times are embedded as local wall-clock ms and rendered with `useUTC`.
@@ -42,6 +46,10 @@ PLAN.md is the design and milestone list; build one milestone at a time.
   `minute_service` folds same (device, domain) events less than 1 s apart (`derive.FOLD`).
 - A "site key" is the root, or the full host for generic hosts (`site_key()` SQL macro);
   `domain_daily` is keyed by it. Attributed generic hosts count toward their owner.
+- `domains.SYSTEM_SUFFIXES` (OS and certificate plumbing) are category `system`: never
+  unusual, never suggested for labels. Labels still override them.
+- Presets: one YAML per service, filename == id, no hostname owned by two services
+  (`test_presets_do_not_overlap`). Social presets cap phone confidence at medium.
 - NextDNS roots can be odd (`com.akadns.net`), so generic checks match hostname suffixes.
 - Blocked lookups feed background patterns only (heartbeats, "app running", attribution),
   never sessions or unusual episodes.

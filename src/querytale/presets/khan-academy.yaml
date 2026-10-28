@@ -1,0 +1,10 @@
+id: khan-academy
+name: Khan Academy
+category: school
+domains:
+  - khanacademy.org
+  - kastatic.org
+min_rate: 3
+min_duration: 5m
+max_gap: 5m
+verified: false

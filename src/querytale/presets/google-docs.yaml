@@ -1,0 +1,13 @@
+id: google-docs
+name: Google Docs, Drive and Slides
+category: school
+hosts:
+  - docs.google.com
+  - drive.google.com
+  - drive.usercontent.google.com
+  - sheets.google.com
+  - slides.google.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

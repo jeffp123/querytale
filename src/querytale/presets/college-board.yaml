@@ -1,0 +1,10 @@
+id: college-board
+name: College Board
+category: school
+domains:
+  - collegeboard.org
+  - collegeboard.com
+min_rate: 3
+min_duration: 5m
+max_gap: 5m
+verified: false

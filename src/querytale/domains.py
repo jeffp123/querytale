@@ -47,6 +47,22 @@ TRACKER_SUFFIXES = (
 )  # fmt: skip
 
 
+# Operating-system and certificate plumbing: always present, never "a site someone visited".
+SYSTEM_SUFFIXES = (
+    "apple.com", "icloud.com", "icloud-content.com", "aaplimg.com", "apple-dns.net",
+    "mzstatic.com", "cdn-apple.com", "apple-cloudkit.com", "push.apple.com",
+    "microsoft.com", "windows.com", "windowsupdate.com", "live.com", "live.net", "office.com",
+    "office.net", "microsoftonline.com", "msftconnecttest.com", "msftncsi.com", "msedge.net",
+    "msn.com", "microsoftpersonalcontent.com", "onedrive.com", "sharepoint.com", "skype.com",
+    "gstatic.com", "googleapis.com", "gvt1.com", "gvt2.com", "gvt3.com", "googleusercontent.com",
+    "google.com", "android.com", "googlezip.net", "1e100.net",
+    "lencr.org", "digicert.com", "pki.goog", "sectigo.com", "globalsign.com", "usertrust.com",
+    "entrust.net", "comodoca.com", "verisign.com", "amazontrust.com", "ocsp.godaddy.com",
+    "footprintdns.com", "nextdns.io", "dns.google", "cloudflare-dns.com",
+)  # fmt: skip
+SYSTEM = "system"
+
+
 def _suffix_match(host: str, suffixes: tuple[str, ...]) -> bool:
     return any(host == s or host.endswith("." + s) for s in suffixes)
 
@@ -57,6 +73,10 @@ def is_generic(host: str) -> bool:
 
 def is_tracker(host: str) -> bool:
     return _suffix_match(host, TRACKER_SUFFIXES)
+
+
+def is_system(host: str) -> bool:
+    return _suffix_match(host, SYSTEM_SUFFIXES)
 
 
 def generic_suffix(host: str) -> str | None:
@@ -231,9 +251,11 @@ def normalize_domain(text: str) -> str:
 def classify(
     key: str, labels: dict[str, str], reason_categories: dict[str, str] | None = None
 ) -> tuple[str, str]:
-    """(category, source) for a site key, from: your labels, NextDNS reasons, UT1."""
+    """(category, source) for a site key: your labels, built-in system list, NextDNS, UT1."""
     if category := lookup_suffix(labels, key):
         return category, "label"
+    if is_system(key):
+        return SYSTEM, "builtin"
     if reason_categories and key in reason_categories:
         return reason_categories[key], "nextdns"
     if category := lookup_suffix(ut1(), key):

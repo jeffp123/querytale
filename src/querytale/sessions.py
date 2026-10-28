@@ -108,6 +108,7 @@ def sessions_from_counts(counts: dict[datetime, int], service: Service, lane: st
             confidence = "high"
         else:
             confidence = "medium"
+        confidence = _cap(confidence, service.max_confidence)
         if lane == "phone":
             confidence = _cap(confidence, service.phone_max_confidence)
         out.append(

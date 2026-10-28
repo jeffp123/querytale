@@ -1,0 +1,12 @@
+id: minecraft
+name: Minecraft
+category: games
+domains:
+  - minecraft.net
+  - minecraft-services.net
+  - minecraftservices.com
+  - mojang.com
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

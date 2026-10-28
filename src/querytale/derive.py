@@ -156,3 +156,15 @@ def refresh(store: Store, cfg: Config, profile_id: str, since: datetime | None) 
     services = load_services()
     if not ensure_minute_service(store, profile_id, services):
         rebuild_minute_service(store, profile_id, services, since)
+
+
+def prune(store: Store, cutoff: datetime) -> None:
+    """Delete everything older than `cutoff` (UTC) and relearn from what remains."""
+    store.con.execute(SCHEMA)
+    store.con.execute(attribution.SCHEMA)
+    store.con.execute("DELETE FROM events WHERE ts < ?", [cutoff])
+    store.con.execute("DELETE FROM minute_service WHERE minute < ?", [cutoff])
+    store.con.execute("DELETE FROM domain_daily WHERE last_seen_ts < ?", [cutoff])
+    for (profile_id,) in store.con.execute("SELECT DISTINCT profile_id FROM events").fetchall():
+        attribution.learn(store, profile_id)
+    store.con.execute("CHECKPOINT")

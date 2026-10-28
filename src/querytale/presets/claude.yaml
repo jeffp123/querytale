@@ -1,0 +1,10 @@
+id: claude
+name: Claude
+category: ai
+domains:
+  - claude.ai
+  - anthropic.com
+min_rate: 3
+min_duration: 5m
+max_gap: 5m
+verified: false

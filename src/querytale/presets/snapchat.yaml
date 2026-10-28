@@ -1,0 +1,15 @@
+id: snapchat
+name: Snapchat
+category: social
+domains:
+  - snapchat.com
+  - snapkit.com
+  - sc-cdn.net
+  - snap-dev.net
+min_rate: 6
+min_duration: 5m
+max_gap: 5m
+# Apps refresh in the background with the same host mix as real use, so DNS
+# alone can't tell them apart on a phone.
+phone_max_confidence: medium
+verified: false

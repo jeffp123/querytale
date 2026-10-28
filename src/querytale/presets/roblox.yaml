@@ -1,0 +1,12 @@
+id: roblox
+name: Roblox
+category: games
+domains:
+  - roblox.com
+  - rbxcdn.com
+  - rbx.com
+  - robloxlabs.com
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

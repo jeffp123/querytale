@@ -1,0 +1,13 @@
+id: disney-plus
+name: Disney+
+category: video
+domains:
+  - disneyplus.com
+  - disney-plus.net
+  - bamgrid.com
+  - dssott.com
+  - disneystreaming.com
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

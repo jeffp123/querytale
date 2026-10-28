@@ -1,0 +1,14 @@
+id: supercell
+name: Supercell
+category: games
+domains:
+  - supercell.com
+  - supercell.net
+  - clashofclans.com
+  - brawlstars.com
+  - clashroyale.com
+  - supercellid.com
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

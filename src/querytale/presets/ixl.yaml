@@ -1,0 +1,9 @@
+id: ixl
+name: IXL
+category: school
+domains:
+  - ixl.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

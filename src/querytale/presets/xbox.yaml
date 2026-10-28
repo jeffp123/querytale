@@ -1,0 +1,16 @@
+id: xbox
+name: Xbox / Game Pass
+category: games
+domains:
+  - xboxlive.com
+  - xbox.com
+  - gamepass.com
+  - xboxservices.com
+  - xboxab.com
+# The Xbox app checks catalog.gamepass.com every 5 minutes while open.
+heartbeat:
+  - host: 'catalog.gamepass.com'
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

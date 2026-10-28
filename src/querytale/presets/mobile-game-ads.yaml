@@ -1,0 +1,17 @@
+id: mobile-game-ads
+name: Mobile game ad SDKs
+category: indirect
+domains:
+  - applovin.com
+  - applvn.com
+  - unityads.unity3d.com
+  - vungle.com
+  - ironsrc.com
+  - ironsrc.mobi
+  - supersonicads.com
+min_rate: 6
+min_duration: 5m
+max_gap: 5m
+# Ad SDK bursts suggest a mobile game in the foreground, never more than that.
+max_confidence: low
+verified: false

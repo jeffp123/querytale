@@ -1,0 +1,9 @@
+id: schoology
+name: Schoology
+category: school
+domains:
+  - schoology.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

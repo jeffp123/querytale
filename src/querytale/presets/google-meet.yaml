@@ -1,0 +1,10 @@
+id: google-meet
+name: Google Meet
+category: school
+hosts:
+  - meet.google.com
+  - meetings.googleapis.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

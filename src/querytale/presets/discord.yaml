@@ -1,0 +1,16 @@
+id: discord
+name: Discord
+category: social
+domains:
+  - discord.com
+  - discord.gg
+  - discordapp.com
+  - discordapp.net
+  - discord.media
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+# Apps refresh in the background with the same host mix as real use, so DNS
+# alone can't tell them apart on a phone.
+phone_max_confidence: medium
+verified: false

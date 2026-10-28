@@ -1,0 +1,12 @@
+id: ea
+name: EA
+category: games
+domains:
+  - ea.com
+  - origin.com
+  - easports.com
+  - eaassets-a.akamaihd.net
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

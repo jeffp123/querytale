@@ -54,6 +54,7 @@ class Service:
     verified: bool = False
     # Highest confidence a phone session can reach (DNS can't tell refresh from use there).
     phone_max_confidence: str = "high"
+    max_confidence: str = "high"  # e.g. "low" for indirect signals such as ad SDKs
     source: str = ""
 
     def matches(self, host: str) -> bool:
@@ -106,8 +107,9 @@ def parse_service(data: dict, source: str = "") -> Service:
     if not patterns and not heartbeat:
         raise ServiceError(f"{where}: no domains, hosts or regex")
     cap = data.get("phone_max_confidence", "high")
-    if cap not in CONFIDENCES:
-        raise ServiceError(f"{where}: phone_max_confidence must be one of {CONFIDENCES}")
+    overall = data.get("max_confidence", "high")
+    if cap not in CONFIDENCES or overall not in CONFIDENCES:
+        raise ServiceError(f"{where}: confidence caps must be one of {CONFIDENCES}")
     try:
         return Service(
             id=sid,
@@ -120,6 +122,7 @@ def parse_service(data: dict, source: str = "") -> Service:
             max_gap=parse_duration(str(data.get("max_gap", "5m"))),
             verified=bool(data.get("verified", False)),
             phone_max_confidence=cap,
+            max_confidence=overall,
             source=source,
         )
     except WindowError as e:

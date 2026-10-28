@@ -201,7 +201,7 @@ def find_unusual(
     kept = []
     for b in bursts:
         b.category, b.category_source = domains.classify(b.key, labels, reasons)
-        if b.category == domains.IGNORE:
+        if b.category in (domains.IGNORE, domains.SYSTEM):
             continue
         b.tracker = (
             b.tracker

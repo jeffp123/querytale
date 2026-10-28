@@ -1,0 +1,13 @@
+id: epic-games
+name: Epic Games
+category: games
+domains:
+  - epicgames.com
+  - epicgames.dev
+  - unrealengine.com
+  - fortnite.com
+  - epicgames.net
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

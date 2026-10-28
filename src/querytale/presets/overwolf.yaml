@@ -1,0 +1,14 @@
+id: overwolf
+name: Overwolf
+category: games
+domains:
+  - overwolf.com
+  - overwolf.net
+# apps.overwolf.com every 10 minutes and updates.overwolf.com every 2 hours while running.
+heartbeat:
+  - host: 'apps.overwolf.com'
+  - host: 'updates.overwolf.com'
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

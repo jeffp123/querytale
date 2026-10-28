@@ -42,15 +42,15 @@ def unusual(store, cfg, hours=3, labels=None):
 
 def test_three_game_portals_in_40_minutes_make_one_episode(store, cfg):
     portals = (
-        spaced("poki.com", DAY, 10)
-        + spaced("www.crazygames.com", DAY + timedelta(minutes=14), 10)
-        + spaced("www.coolmathgames.com", DAY + timedelta(minutes=28), 10)
+        spaced("www.friv.com", DAY, 10)
+        + spaced("www.kizi.com", DAY + timedelta(minutes=14), 10)
+        + spaced("www.miniclip.com", DAY + timedelta(minutes=28), 10)
     )
     load(store, cfg, history() + portals)
     found = unusual(store, cfg)
     assert not found.warming_up
     (episode,) = found.episodes
-    assert [b.key for b in episode.bursts] == ["poki.com", "crazygames.com", "coolmathgames.com"]
+    assert [b.key for b in episode.bursts] == ["friv.com", "kizi.com", "miniclip.com"]
     assert episode.title() == "3 rare sites, mostly games"
     assert episode.end - episode.start < timedelta(minutes=40)
     assert all(b.category_source == "ut1" for b in episode.bursts)
@@ -111,18 +111,18 @@ def test_category_sources_and_ignore(store, cfg):
          + [entry(DAY - timedelta(days=60), "mystery-site.com", status="blocked",
                   reasons=["category:gambling"])]
          + spaced("mystery-site.com", DAY, 10)
-         + spaced("poki.com", DAY + timedelta(hours=1), 10)
+         + spaced("y8.com", DAY + timedelta(hours=1), 10)
          + spaced("boring-site.com", DAY + timedelta(hours=2), 10))  # fmt: skip
-    found = unusual(store, cfg, labels={"poki.com": "school", "boring-site.com": "ignore"})
+    found = unusual(store, cfg, labels={"y8.com": "school", "boring-site.com": "ignore"})
     got = {b.key: (b.category, b.category_source) for e in found.episodes for b in e.bursts}
     assert got == {
         "mystery-site.com": ("gambling", "nextdns"),
-        "poki.com": ("school", "label"),
+        "y8.com": ("school", "label"),
     }
 
 
 def test_warming_up_without_30_days_of_history(store, cfg):
-    load(store, cfg, history(days=5) + spaced("poki.com", DAY, 10))
+    load(store, cfg, history(days=5) + spaced("y8.com", DAY, 10))
     assert unusual(store, cfg).warming_up
 
 

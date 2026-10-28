@@ -1,0 +1,12 @@
+id: chatgpt
+name: ChatGPT
+category: ai
+domains:
+  - chatgpt.com
+  - openai.com
+  - oaiusercontent.com
+  - oaistatic.com
+min_rate: 3
+min_duration: 5m
+max_gap: 5m
+verified: false

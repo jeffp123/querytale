@@ -9,7 +9,7 @@ import re
 import sys
 import webbrowser
 from collections.abc import Callable
-from datetime import UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -21,6 +21,7 @@ from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TimeE
 from rich.table import Table
 
 from querytale import __version__, config, derive, keystore, paths
+from querytale import doctor as doctor_checks
 from querytale.api import ApiError, NextDNSClient, ReadOnlyViolation
 from querytale.config import Config, ConfigError, Profile
 from querytale.domains import IGNORE, load_labels, normalize_domain, save_labels
@@ -545,6 +546,95 @@ def services_() -> None:
     """List configured services and their patterns."""
     render_services(console, load_services())
     console.print(f"[dim]Add or override services with YAML files in {user_services_dir()}[/dim]")
+
+
+@app.command()
+@handle_errors
+def doctor(
+    label: Annotated[
+        str | None, typer.Argument(help="Profile for suggestions (default first).")
+    ] = None,
+) -> None:
+    """Check config and sync health; suggest heartbeats and sites worth labeling."""
+    cfg = config.load()
+    services = load_services()
+    with Store.open() as store:
+        for p in cfg.profiles.values():
+            if store.event_range(p.id)[1] is not None:
+                derive.ensure(store, cfg, p.id, services)
+        rep = doctor_checks.run(store, cfg, services, label)
+    for c in rep.checks:
+        mark = "[green]✓[/green]" if c.ok else "[yellow]![/yellow]"
+        hint = f"  [dim]→ {escape(c.hint)}[/dim]" if c.hint else ""
+        console.print(f"{mark} {escape(c.text)}{hint}")
+
+    if rep.attribution and rep.attribution.lookups:
+        a = rep.attribution
+        console.print(
+            f"\n[bold]CDN host attribution[/bold]: {a.hosts:,} generic hosts, "
+            f"{a.lookups:,} lookups · "
+            f"named in hostname {a.share('name'):.0%} · learned {a.share('cooccurrence'):.0%} · "
+            f"unattributed {a.share('unattributed'):.0%} · too rare {a.share('too_rare'):.0%}"
+        )
+    if rep.heartbeats:
+        console.print(
+            "\n[bold]Possible heartbeats[/bold] (lookups like clockwork in the last 30 days; "
+            "add to a service's heartbeat list if it is an app checking in)"
+        )
+        for h in rep.heartbeats[:12]:
+            owner = f" · in {h.service}" if h.service else ""
+            console.print(
+                f"  {escape(h.host)} [dim]every {h.median_gap_s / 60:.0f} min, "
+                f"{h.lookups:,} lookups{escape(owner)}[/dim]"
+            )
+        console.print("  [dim]In a service YAML:  heartbeat:\n    - host: '<hostname>'[/dim]")
+    if rep.unclassified:
+        console.print("\n[bold]Busiest unclassified sites[/bold] (last 30 days)")
+        for root, n in rep.unclassified:
+            console.print(
+                f"  {escape(root)} [dim]{n:,} lookups · querytale label {escape(root)} "
+                "<category>[/dim]"
+            )
+    if rep.quiet_sessions:
+        console.print(
+            "\n[bold]Sessions inside quiet windows[/bold] (tighten thresholds, or a real exception)"
+        )
+        for quiet, what, when in rep.quiet_sessions:
+            console.print(f"  {escape(quiet)}: {escape(what)} {when}")
+
+
+@app.command()
+@handle_errors
+def prune(
+    older_than: Annotated[
+        str, typer.Option(help="Delete data and reports older than this.")
+    ] = "400d",
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Don't ask for confirmation.")] = False,
+    dry_run: Annotated[bool, typer.Option(help="Only show what would be deleted.")] = False,
+) -> None:
+    """Delete old lookups, derived rows and reports from this computer."""
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - parse_duration(older_than)
+    reports_dir = paths.home() / "reports"
+    old_reports = [
+        p for p in (reports_dir.rglob("*.html") if reports_dir.exists() else [])
+        if datetime.fromtimestamp(p.stat().st_mtime, UTC).replace(tzinfo=None) < cutoff
+    ]  # fmt: skip
+    with Store.open() as store:
+        (n_events,) = store.con.execute(
+            "SELECT count(*) FROM events WHERE ts < ?", [cutoff]
+        ).fetchone()
+        console.print(
+            f"Older than {older_than} ({cutoff:%Y-%m-%d} UTC): {n_events:,} lookup events and "
+            f"{len(old_reports)} reports."
+        )
+        if dry_run or (not n_events and not old_reports):
+            return
+        if not yes and not typer.confirm("Delete them permanently?", default=False):
+            raise typer.Exit(1)
+        derive.prune(store, cutoff)
+    for p in old_reports:
+        p.unlink()
+    console.print("[green]Done.[/green]")
 
 
 if __name__ == "__main__":

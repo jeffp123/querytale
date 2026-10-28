@@ -1,0 +1,17 @@
+id: browser-games
+name: Browser game portals
+category: games
+domains:
+  - crazygames.com
+  - poki.com
+  - poki-gdn.com
+  - coolmathgames.com
+  - addictinggames.com
+  - kongregate.com
+  - newgrounds.com
+  - itch.io
+  - itch.zone
+min_rate: 4
+min_duration: 5m
+max_gap: 5m
+verified: false

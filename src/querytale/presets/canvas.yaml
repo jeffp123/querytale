@@ -1,0 +1,10 @@
+id: canvas
+name: Canvas
+category: school
+domains:
+  - instructure.com
+  - canvaslms.com
+min_rate: 2
+min_duration: 5m
+max_gap: 5m
+verified: false

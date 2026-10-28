@@ -7,6 +7,7 @@ import functools
 import os
 import re
 import sys
+import webbrowser
 from collections.abc import Callable
 from datetime import UTC, timedelta
 from pathlib import Path
@@ -26,6 +27,7 @@ from querytale.domains import IGNORE, load_labels, normalize_domain, save_labels
 from querytale.importer import import_csv
 from querytale.novelty import find_unusual
 from querytale.quiet import quiet_intervals
+from querytale.report import ReportContext, build_data, render_html, report_path, write_report
 from querytale.services import ServiceError, load_services, user_services_dir
 from querytale.sessions import analyze
 from querytale.store import Store
@@ -400,6 +402,43 @@ def summary(
         last_sync = store.get_sync_state(profile.id).last_run_at
     render_summary(console, label, window.label, result, Clock(cfg.tz()), last_sync, unusual,
                    include_low=show_low)  # fmt: skip
+
+
+@app.command()
+@handle_errors
+def report(
+    label: Annotated[str, typer.Argument(help="Profile label.")],
+    last: Annotated[str | None, typer.Option(help="e.g. 48h, 7d (default 24h).")] = None,
+    date: Annotated[str | None, typer.Option(help="A local day, YYYY-MM-DD.")] = None,
+    from_: Annotated[str | None, typer.Option("--from", help="Local start time.")] = None,
+    to: Annotated[str | None, typer.Option(help="Local end time (default now).")] = None,
+    out: Annotated[
+        Path | None, typer.Option(help="Write here instead of the reports folder.")
+    ] = None,
+    no_sync: Annotated[bool, typer.Option("--no-sync", help="Use local data only.")] = False,
+    no_open: Annotated[
+        bool, typer.Option("--no-open", help="Don't open it in the browser.")
+    ] = False,
+) -> None:
+    """Sync, analyze, and write a self-contained interactive HTML report."""
+    cfg = config.load()
+    profile = cfg.profile(label)
+    window = parse_window(last=last, on_date=date, from_=from_, to=to, tz=cfg.tz())
+    services = load_services()
+    with Store.open() as store:
+        maybe_sync(store, cfg, profile, no_sync)
+        with console.status("Analyzing…"):
+            derive.ensure(store, cfg, profile.id, services)
+            result = analyze(store, profile.id, services, window.start, window.end)
+            found = find_unusual(store, profile.id, services, window.start, window.end, cfg.tz())
+            ctx = ReportContext(label, window.label, window.start, window.end, cfg.tz(),
+                                store.get_sync_state(profile.id).last_run_at)  # fmt: skip
+            data = build_data(store, profile.id, services, ctx, result, found)
+    path = write_report(render_html(data), out or report_path(label, ctx, cfg.tz()))
+    size = path.stat().st_size / 1e6
+    console.print(f"Report written to {escape(str(path))} ({size:.1f} MB)")
+    if not no_open:
+        webbrowser.open(path.resolve().as_uri())
 
 
 @app.command()

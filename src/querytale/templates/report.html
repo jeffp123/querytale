@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="__CSP__">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>__TITLE__</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --wash: rgba(11, 11, 11, 0.05);
+  --cat-games: #2a78d6;
+  --cat-video: #eb6834;
+  --cat-school: #1baf7a;
+  --cat-social: #eda100;
+  --cat-ai: #e87ba4;
+  --cat-other: #898781;
+  --cat-unusual: #6250d6;
+  --seq-0: #cde2fb;
+  --seq-1: #86b6ef;
+  --seq-2: #2a78d6;
+  --seq-3: #0d366b;
+  --overlap: rgba(208, 59, 59, 0.10);
+  --critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --wash: rgba(255, 255, 255, 0.06);
+    --cat-games: #3987e5;
+    --cat-video: #d95926;
+    --cat-school: #199e70;
+    --cat-social: #c98500;
+    --cat-ai: #d55181;
+    --cat-other: #898781;
+    --cat-unusual: #9085e9;
+    --seq-0: #104281;
+    --seq-1: #256abf;
+    --seq-2: #6da7ec;
+    --seq-3: #cde2fb;
+    --overlap: rgba(230, 103, 103, 0.14);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --wash: rgba(255, 255, 255, 0.06);
+  --cat-games: #3987e5;
+  --cat-video: #d95926;
+  --cat-school: #199e70;
+  --cat-social: #c98500;
+  --cat-ai: #d55181;
+  --cat-other: #898781;
+  --cat-unusual: #9085e9;
+  --seq-0: #104281;
+  --seq-1: #256abf;
+  --seq-2: #6da7ec;
+  --seq-3: #cde2fb;
+  --overlap: rgba(230, 103, 103, 0.14);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  color: var(--text-primary);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 650; }
+h2 { font-size: 15px; margin: 0 0 4px; font-weight: 650; }
+.sub { color: var(--text-secondary); margin: 0; }
+.muted { color: var(--text-muted); }
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.card > .sub { margin-bottom: 8px; }
+.notes { margin: 8px 0 0; padding-left: 18px; color: var(--text-secondary); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.tile .value { font-size: 24px; font-weight: 600; margin-top: 2px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 16px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: inherit; border: 0; background: transparent; color: var(--text-secondary);
+  padding: 5px 12px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--wash); color: var(--text-primary); font-weight: 600; }
+label.check { display: inline-flex; gap: 6px; align-items: center; color: var(--text-secondary); cursor: pointer; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-secondary); font-size: 13px; margin: 4px 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .run { width: 18px; height: 5px; border-radius: 2px; background: repeating-linear-gradient(135deg, var(--text-secondary) 0 1.5px, transparent 1.5px 4px); }
+.legend .run.blocked { opacity: .45; }
+.legend .ovl { width: 14px; height: 12px; background: var(--overlap); border-radius: 2px; }
+#timeline { width: 100%; }
+#freq { width: 100%; height: 300px; }
+.heat { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.heat .cell h3 { font-size: 13px; font-weight: 600; margin: 0; display: flex; gap: 6px; align-items: center; }
+.heat .chart { height: 220px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover, tr.clickable:focus { background: var(--wash); outline: none; }
+tr.low { color: var(--text-muted); }
+.pill { display: inline-block; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+button.copy {
+  font: inherit; font-size: 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: transparent; color: var(--text-secondary); padding: 2px 8px; cursor: pointer;
+}
+button.copy:hover { background: var(--wash); }
+.empty { color: var(--text-muted); padding: 8px 0; }
+#drill {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%);
+  background: var(--surface-1); border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, .12); padding: 20px 16px 40px;
+  overflow-y: auto; transform: translateX(105%); visibility: hidden;
+  transition: transform .18s ease, visibility 0s linear .18s; z-index: 10;
+}
+#drill.open { transform: none; visibility: visible; transition: transform .18s ease; }
+#drill .close { position: absolute; top: 12px; right: 12px; font: inherit; font-size: 20px; line-height: 1; border: 0; background: transparent; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; }
+#drill h2 { padding-right: 36px; }
+#drill h3 { font-size: 13px; margin: 18px 0 6px; color: var(--text-secondary); font-weight: 600; }
+#drill .events { max-height: 360px; overflow: auto; border: 1px solid var(--grid); border-radius: 6px; }
+#drill dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0 0; }
+#drill dt { color: var(--text-secondary); }
+#drill dd { margin: 0; }
+.cmd { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; }
+.cmd code { flex: 1; word-break: break-all; background: var(--wash); padding: 6px 8px; border-radius: 6px; }
+footer { color: var(--text-muted); font-size: 12px; margin-top: 24px; }
+@media (max-width: 640px) {
+  #drill { top: auto; height: 80vh; width: 100%; border-left: 0; border-top: 1px solid var(--border); transform: translateY(105%); }
+  #drill.open { transform: none; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title"></h1>
+    <p class="sub" id="window"></p>
+    <p class="sub muted" id="meta"></p>
+    <ul class="notes" id="notes"></ul>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Summary" style="margin-top:16px"></section>
+
+  <div class="controls" role="group" aria-label="Filters">
+    <div class="seg" id="lane" role="group" aria-label="Lane">
+      <button type="button" data-lane="all" aria-pressed="true">All devices</button>
+      <button type="button" data-lane="computer" aria-pressed="false">Computer</button>
+      <button type="button" data-lane="phone" aria-pressed="false">Phone</button>
+    </div>
+    <label class="check"><input type="checkbox" id="showLow"> Show low-confidence bursts</label>
+    <label class="check"><input type="checkbox" id="showHb"> Include heartbeats in lookups</label>
+    <label class="check"><input type="checkbox" id="logScale"> Log scale</label>
+  </div>
+
+  <section class="card">
+    <h2>Timeline</h2>
+    <p class="sub">Sessions of sustained use per service. Scroll or drag the slider to zoom; click a bar for details.</p>
+    <div class="legend" id="tlLegend"></div>
+    <div id="timeline"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="freqTitle">Lookups</h2>
+    <p class="sub">Allowed lookups, repeats under a second folded. Follows the timeline's zoom; click a bar for its top sites.</p>
+    <div class="legend" id="freqLegend"></div>
+    <div id="freq"></div>
+  </section>
+
+  <section class="card" id="heatCard" hidden>
+    <h2>Active minutes by day and hour</h2>
+    <p class="sub">Minutes inside medium or high confidence sessions, one grid per category.</p>
+    <div class="heat" id="heat"></div>
+  </section>
+
+  <section class="card">
+    <h2>Unusual sites</h2>
+    <p class="sub">Sites rare for this profile (seen on 3 or fewer of the prior 30 days) that showed up in clusters. Evidence, not proof.</p>
+    <div id="unusual"></div>
+  </section>
+
+  <section class="card">
+    <h2>Sessions</h2>
+    <p class="sub">Every session in the timeline, as a table.</p>
+    <div class="table-wrap" id="sessions"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</main>
+
+<aside id="drill" aria-hidden="true" aria-labelledby="drillTitle" role="dialog">
+  <button type="button" class="close" id="drillClose" aria-label="Close details">×</button>
+  <div id="drillBody"></div>
+</aside>
+
+<script>/*__ECHARTS__*/</script>
+<script type="application/json" id="qt-data">__DATA__</script>
+<script>
+"use strict";
+(function () {
+  const t0 = performance.now();
+  const D = JSON.parse(document.getElementById("qt-data").textContent);
+  const CATS = D.categories.map((c) => c.id);
+  const state = { lane: "all", showLow: false, showHb: false, log: false };
+  const charts = [];
+
+  // Helpers ---------------------------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  function el(tag, attrs, ...kids) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "style") n.style.cssText = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
+    }
+    for (const kid of kids.flat()) {
+      if (kid === null || kid === undefined || kid === false) continue;
+      n.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+    }
+    return n;
+  }
+  // Only for ECharts tooltips, which take HTML strings. Everything else uses textContent.
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const catColor = (slot) => css("--cat-" + (slot === "unusual" ? "unusual" : CATS.includes(slot) ? slot : "other"));
+  const catName = (id) => (D.categories.find((c) => c.id === id) || { name: id }).name;
+  function fmtMin(m) {
+    if (m < 60) return m + "m";
+    return Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m";
+  }
+  const fmtNum = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "K" : String(n));
+  const pad = (n) => String(n).padStart(2, "0");
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function fmtTime(ms) { // ms are local wall-clock, encoded as UTC
+    const d = new Date(ms);
+    return DAYS[d.getUTCDay()] + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
+  }
+  function copyText(text, button) {
+    const done = () => { const old = button.textContent; button.textContent = "Copied"; setTimeout(() => (button.textContent = old), 1200); };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, () => fallback());
+    } else fallback();
+    function fallback() {
+      const ta = el("textarea", { style: "position:fixed;opacity:0" }, text);
+      document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) { /* user can select the text */ }
+      ta.remove();
+    }
+  }
+  function cmdBlock(text) {
+    const b = el("button", { type: "button", class: "copy" }, "Copy");
+    b.addEventListener("click", () => copyText(text, b));
+    return el("div", { class: "cmd" }, el("code", { class: "mono" }, text), b);
+  }
+  const laneOk = (lane) => state.lane === "all" || state.lane === lane;
+  const sessionVisible = (s) => laneOk(rowById[s.row].lane) && (state.showLow || s.confidence !== "low");
+  const rowById = Object.fromEntries(D.rows.map((r) => [r.id, r]));
+
+  // Header & tiles --------------------------------------------------------------------
+  const M = D.meta;
+  $("title").textContent = M.label;
+  $("window").textContent = M.window + " · " + M.startText + " to " + M.endText + " (" + M.tz + ")";
+  $("meta").textContent = "Last sync " + (M.lastSync || "never (local data only)") + " · generated " + M.generated + " · " + M.events.toLocaleString() + " lookup events";
+  const notes = $("notes");
+  if (M.warmingUp) notes.append(el("li", {}, "Unusual sites are warming up: less than 30 days of history before this window, so more sites look rare than really are."));
+  if (!M.embedRaw) notes.append(el("li", {}, "This window is large, so raw lookups are not embedded; details show the equivalent query command."));
+  for (const g of D.gaps) notes.append(el("li", {}, "No lookups on the " + g.lane + " " + g.text + " (" + fmtMin(g.minutes) + "): off, asleep, or not using NextDNS."));
+
+  function renderTiles() {
+    const tiles = $("tiles");
+    tiles.replaceChildren();
+    for (const c of D.categories) {
+      const m = D.active[c.id] || 0;
+      tiles.append(el("div", { class: "tile" },
+        el("div", { class: "label" }, el("span", { class: "swatch", style: "background:" + catColor(c.id) }), c.name),
+        el("div", { class: "value" }, m ? fmtMin(m) : "–")));
+    }
+    tiles.append(el("div", { class: "tile" }, el("div", { class: "label" }, "Overlaps"), el("div", { class: "value" }, D.overlaps.length)));
+    tiles.append(el("div", { class: "tile" }, el("div", { class: "label" }, "Unusual episodes"), el("div", { class: "value" }, D.episodes.length)));
+  }
+
+  // Shared chart chrome ---------------------------------------------------------------
+  function axisStyle() {
+    return {
+      axisLine: { lineStyle: { color: css("--axis") } },
+      axisTick: { show: false },
+      axisLabel: { color: css("--text-muted"), fontSize: 11 },
+      splitLine: { lineStyle: { color: css("--grid"), width: 1 } },
+    };
+  }
+  function tooltipStyle() {
+    return {
+      backgroundColor: css("--surface-1"), borderColor: css("--border"), borderWidth: 1,
+      textStyle: { color: css("--text-primary"), fontSize: 12 }, extraCssText: "box-shadow:0 4px 16px rgba(0,0,0,.12);border-radius:8px;",
+      confine: true,
+    };
+  }
+  function hatch(color, alpha) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 6;
+    const g = c.getContext("2d");
+    g.globalAlpha = alpha; g.strokeStyle = color; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(0, 6); g.lineTo(6, 0); g.moveTo(-1, 1); g.lineTo(1, -1); g.moveTo(5, 7); g.lineTo(7, 5); g.stroke();
+    return { image: c, repeat: "repeat" };
+  }
+  const OPACITY = { high: 1, medium: 0.72, low: 0.32 };
+  function timeLabel(v) { // midnight shows the day, other ticks the time
+    const d = new Date(v);
+    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) return DAYS[d.getUTCDay()] + " " + d.getUTCDate();
+    return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
+  }
+  const timeAxisLabel = () => ({ color: css("--text-muted"), fontSize: 11, hideOverlap: true, formatter: timeLabel });
+  const dataZoom = () => [
+    { type: "inside", xAxisIndex: 0, filterMode: "weakFilter", zoomOnMouseWheel: "shift", moveOnMouseWheel: false },
+    { type: "slider", xAxisIndex: 0, filterMode: "weakFilter", height: 18, bottom: 6, labelFormatter: (v) => fmtTime(v),
+      borderColor: css("--border"), fillerColor: css("--wash"), textStyle: { color: css("--text-muted") },
+      dataBackground: { lineStyle: { color: css("--axis") }, areaStyle: { color: css("--wash") } } },
+  ];
+
+  // Timeline --------------------------------------------------------------------------
+  let timeline;
+  function renderTimeline() {
+    const rows = D.rows.filter((r) => laneOk(r.lane));
+    const rowIndex = Object.fromEntries(rows.map((r, i) => [r.id, i]));
+    const height = Math.max(rows.length, 1) * 36 + 70;
+    const labelWidth = $("timeline").clientWidth < 600 ? 104 : 164;
+    $("timeline").style.height = height + "px";
+    if (!timeline) { timeline = echarts.init($("timeline"), null, { renderer: "canvas" }); charts.push(timeline); timeline.on("click", onTimelineClick); }
+
+    const sessions = D.sessions.filter((s) => s.row in rowIndex && sessionVisible(s));
+    const episodes = D.episodes.filter((e) => e.row in rowIndex);
+    const running = D.running.filter((r) => r.row in rowIndex);
+    const ink = css("--text-secondary");
+    const hatchOk = hatch(ink, 0.9), hatchBlocked = hatch(ink, 0.35);
+
+    function clip(params, shape) {
+      return echarts.graphic.clipRectByRect(shape, { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height });
+    }
+    function barItem(colorOf, opacityOf) {
+      return function (params, api) {
+        const row = api.value(0), a = api.coord([api.value(1), row]), b = api.coord([api.value(2), row]);
+        const band = api.size([0, 1])[1], h = Math.min(16, band * 0.45);
+        const shape = clip(params, { x: a[0], y: a[1] - h / 2 - 3, width: Math.max(b[0] - a[0], 3), height: h });
+        return shape && { type: "rect", shape: Object.assign(shape, { r: 3 }), style: { fill: colorOf(api.value(3)), opacity: opacityOf(api.value(3)) } };
+      };
+    }
+    const sessionColor = (i) => catColor(rowById[sessions[i].row].slot);
+    const runningItem = function (params, api) {
+      const row = api.value(0), a = api.coord([api.value(1), row]), b = api.coord([api.value(2), row]);
+      const band = api.size([0, 1])[1], h = Math.min(16, band * 0.45);
+      const shape = clip(params, { x: a[0], y: a[1] + h / 2, width: Math.max(b[0] - a[0], 2), height: 4 });
+      return shape && { type: "rect", shape, style: { fill: running[api.value(3)].blocked ? hatchBlocked : hatchOk } };
+    };
+
+    timeline.setOption({
+      animation: false, useUTC: true,
+      grid: { left: labelWidth + 12, right: 16, top: 8, bottom: 52 },
+      tooltip: Object.assign(tooltipStyle(), { trigger: "item", formatter: timelineTip }),
+      xAxis: Object.assign({ type: "time", min: M.start, max: M.end, axisLabel: timeAxisLabel() },
+        { axisLine: { lineStyle: { color: css("--axis") } }, splitLine: { show: true, lineStyle: { color: css("--grid") } } }),
+      yAxis: {
+        type: "category", inverse: true, data: rows.map((r) => r.id),
+        axisTick: { show: false }, axisLine: { lineStyle: { color: css("--axis") } },
+        axisLabel: {
+          formatter: (id) => "{n|" + rowById[id].name.replace(/[{}|]/g, "") + "}\n{l|" + rowById[id].lane + "}",
+          rich: {
+            n: { color: css("--text-secondary"), fontSize: 12, width: labelWidth, overflow: "truncate", align: "right", lineHeight: 15 },
+            l: { color: css("--text-muted"), fontSize: 11, align: "right", lineHeight: 13 },
+          },
+        },
+        splitLine: { show: true, lineStyle: { color: css("--grid") } },
+      },
+      dataZoom: dataZoom(),
+      series: [
+        { id: "sessions", type: "custom", renderItem: barItem(sessionColor, (i) => OPACITY[sessions[i].confidence]),
+          encode: { x: [1, 2], y: 0 }, data: sessions.map((s, i) => [rowIndex[s.row], s.start, s.end, i]), clip: true,
+          markArea: { silent: true, itemStyle: { color: css("--overlap") }, data: D.overlaps.map((o) => [{ xAxis: o.start }, { xAxis: o.end }]) } },
+        { id: "running", type: "custom", renderItem: runningItem, encode: { x: [1, 2], y: 0 },
+          data: running.map((r, i) => [rowIndex[r.row], r.start, r.end, i]), clip: true },
+        { id: "episodes", type: "custom", renderItem: barItem(() => catColor("unusual"), () => 0.9),
+          encode: { x: [1, 2], y: 0 }, data: episodes.map((e, i) => [rowIndex[e.row], e.start, e.end, i]), clip: true },
+      ],
+    }, { replaceMerge: ["series", "yAxis"] });
+    timeline.__qt = { sessions, episodes, running };
+  }
+  function timelineTip(p) {
+    const T = timeline.__qt;
+    if (p.seriesId === "sessions") {
+      const s = T.sessions[p.value[3]], r = rowById[s.row];
+      return "<b>" + fmtMin(s.minutes) + "</b> " + esc(r.name) + " · " + esc(r.lane) + "<br>" + esc(s.startText + "–" + s.endText) +
+        "<br><span style='color:" + css("--text-secondary") + "'>" + esc(s.confidence) + " confidence · " + s.mean + " lookups/3 min</span>";
+    }
+    if (p.seriesId === "episodes") {
+      const e = T.episodes[p.value[3]];
+      return "<b>" + esc(e.title) + "</b><br>" + esc(e.startText + "–" + e.endText) + "<br><span style='color:" + css("--text-secondary") + "'>" + e.lookups + " lookups</span>";
+    }
+    const r = T.running[p.value[3]];
+    return "<b>" + esc(rowById[r.row].name) + " running</b> (heartbeats, not use)<br>" + esc(r.text) + (r.blocked ? "<br>lookups were blocked" : "");
+  }
+  function onTimelineClick(p) {
+    const T = timeline.__qt;
+    if (p.seriesId === "sessions") showSession(T.sessions[p.value[3]]);
+    else if (p.seriesId === "episodes") showEpisode(T.episodes[p.value[3]]);
+  }
+
+  // Frequency -------------------------------------------------------------------------
+  let freq;
+  function freqSeries() {
+    const F = D.frequency, lanes = state.lane === "all" ? ["phone", "computer"] : [state.lane];
+    const names = [...CATS, ...(state.showHb ? ["heartbeat"] : [])];
+    return names.map((name) => {
+      const values = F.buckets.map((b, i) => lanes.reduce((sum, lane) => sum + F.series[lane][name][i], 0));
+      return { name, values };
+    }).filter((s) => s.values.some((v) => v > 0) || s.name !== "heartbeat");
+  }
+  function renderFreq() {
+    if (!freq) { freq = echarts.init($("freq"), null, { renderer: "canvas" }); charts.push(freq); freq.on("click", (p) => showBucket(p.dataIndex)); }
+    const F = D.frequency;
+    $("freqTitle").textContent = "Lookups per " + (F.minutes === 1 ? "minute" : F.minutes + " minutes");
+    const series = freqSeries();
+    const legend = $("freqLegend");
+    legend.replaceChildren(...series.map((s) => el("span", {}, el("span", { class: "swatch", style: "background:" + (s.name === "heartbeat" ? css("--axis") : catColor(s.name)) }), s.name === "heartbeat" ? "App heartbeats" : catName(s.name))));
+    const gapAreas = state.lane === "all" ? [] : D.gaps.filter((g) => g.lane === state.lane).map((g) => [{ xAxis: g.start }, { xAxis: g.end }]);
+    freq.setOption({
+      animation: false, useUTC: true,
+      grid: { left: 48, right: 16, top: 12, bottom: 52 },
+      tooltip: Object.assign(tooltipStyle(), { trigger: "axis", axisPointer: { type: "line", lineStyle: { color: css("--axis") } }, formatter: freqTip }),
+      xAxis: Object.assign({ type: "time", min: M.start, max: M.end }, axisStyle(), { splitLine: { show: false }, axisLabel: timeAxisLabel() }),
+      yAxis: Object.assign({ type: state.log ? "log" : "value", min: state.log ? 1 : 0, logBase: 10 }, axisStyle(), { axisLabel: { color: css("--text-muted"), fontSize: 11, formatter: (v) => fmtNum(v) }, axisLine: { show: false } }),
+      dataZoom: dataZoom().map((z) => (z.type === "slider" ? Object.assign(z, { show: false }) : z)),
+      series: series.map((s, k) => ({
+        name: s.name, type: "bar", stack: "all", large: true, largeThreshold: 3000, barMaxWidth: 24, barCategoryGap: "10%",
+        itemStyle: { color: s.name === "heartbeat" ? css("--axis") : catColor(s.name), borderRadius: 0 },
+        emphasis: { disabled: true },
+        data: F.buckets.map((b, i) => [b + F.minutes * 30000, state.log && s.values[i] === 0 ? null : s.values[i]]),
+        markArea: k === 0 && gapAreas.length ? { silent: true, itemStyle: { color: css("--wash") }, label: { show: false }, data: gapAreas } : undefined,
+      })),
+    }, { replaceMerge: ["series"] });
+  }
+  function freqTip(params) {
+    if (!params.length) return "";
+    const i = params[0].dataIndex, F = D.frequency;
+    const total = params.reduce((s, p) => s + (p.value[1] || 0), 0);
+    let html = "<b>" + total + "</b> lookups<br><span style='color:" + css("--text-secondary") + "'>" + esc(fmtTime(F.buckets[i])) + "</span>";
+    for (const p of params.slice().reverse()) {
+      if (!p.value[1]) continue;
+      const color = p.seriesName === "heartbeat" ? css("--axis") : catColor(p.seriesName);
+      html += "<br><span style='display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;background:" + color + "'></span><b>" + p.value[1] + "</b> " + esc(p.seriesName === "heartbeat" ? "App heartbeats" : catName(p.seriesName));
+    }
+    return html;
+  }
+
+  // Heatmap ---------------------------------------------------------------------------
+  const heatCharts = [];
+  function renderHeat() {
+    while (heatCharts.length) { const c = heatCharts.pop(); charts.splice(charts.indexOf(c), 1); c.dispose(); }
+    const H = D.heatmap;
+    if (!H) return;
+    const cats = CATS.filter((c) => H.grids[c] && H.grids[c].length);
+    if (!cats.length) return;
+    $("heatCard").hidden = false;
+    const wrap = $("heat");
+    wrap.replaceChildren();
+    const max = Math.max(60, ...cats.flatMap((c) => H.grids[c].map((v) => v[2])));
+    for (const c of cats) {
+      const div = el("div", { class: "chart", role: "img", "aria-label": catName(c) + " active minutes by day and hour" });
+      wrap.append(el("div", { class: "cell" }, el("h3", {}, el("span", { class: "swatch", style: "background:" + catColor(c) }), catName(c)), div));
+      const chart = echarts.init(div, null, { renderer: "canvas" });
+      charts.push(chart); heatCharts.push(chart);
+      chart.setOption({
+        animation: false,
+        grid: { left: 70, right: 8, top: 8, bottom: 24 },
+        tooltip: Object.assign(tooltipStyle(), { formatter: (p) => "<b>" + p.value[2] + " min</b> active<br>" + esc(H.days[p.value[1]]) + ", " + pad(p.value[0]) + ":00" }),
+        xAxis: Object.assign({ type: "category", data: [...Array(24).keys()].map((h) => pad(h)) }, axisStyle(), { splitLine: { show: false }, axisLabel: { color: css("--text-muted"), fontSize: 10, interval: 5 } }),
+        yAxis: Object.assign({ type: "category", data: H.days, inverse: true }, axisStyle(), { splitLine: { show: false }, axisLabel: { color: css("--text-muted"), fontSize: 10 } }),
+        visualMap: { show: false, min: 1, max, inRange: { color: [css("--seq-0"), css("--seq-1"), css("--seq-2"), css("--seq-3")] } },
+        series: [{ type: "heatmap", data: H.grids[c].map((v) => [v[1], v[0], v[2]]), itemStyle: { borderColor: css("--surface-1"), borderWidth: 2, borderRadius: 2 } }],
+      });
+    }
+  }
+
+  // Tables ----------------------------------------------------------------------------
+  function clickableRow(cells, onOpen, cls) {
+    const tr = el("tr", { class: "clickable" + (cls ? " " + cls : ""), tabindex: "0" }, cells);
+    tr.addEventListener("click", onOpen);
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } });
+    return tr;
+  }
+  function renderSessions() {
+    const list = D.sessions.filter(sessionVisible);
+    const box = $("sessions");
+    if (!list.length) { box.replaceChildren(el("p", { class: "empty" }, "No sessions in this window.")); return; }
+    const head = el("tr", {}, ["When", "Length", "Service", "Lane", "Confidence", "Rate", "Top hosts"].map((h, i) => el("th", { class: i === 1 || i === 5 ? "num" : null }, h)));
+    const body = list.map((s) => {
+      const r = rowById[s.row];
+      return clickableRow([
+        el("td", {}, s.startText + "–" + s.endText),
+        el("td", { class: "num" }, fmtMin(s.minutes)),
+        el("td", {}, el("span", { class: "swatch", style: "background:" + catColor(r.slot) + ";margin-right:6px" }), r.name),
+        el("td", {}, r.lane), el("td", {}, s.confidence),
+        el("td", { class: "num" }, s.mean + "/3m"),
+        el("td", { class: "mono" }, s.hosts.slice(0, 3).map((h) => h[0] + (h[2] ? " (inferred)" : "")).join(", ")),
+      ], () => showSession(s), s.confidence === "low" ? "low" : null);
+    });
+    box.replaceChildren(el("table", {}, el("thead", {}, head), el("tbody", {}, body)));
+  }
+  function renderUnusual() {
+    const box = $("unusual");
+    box.replaceChildren();
+    const eps = D.episodes.filter((e) => laneOk(e.lane));
+    if (!eps.length) box.append(el("p", { class: "empty" }, "No unusual episodes" + (state.lane === "all" ? "." : " on this lane.")));
+    else {
+      const head = el("tr", {}, ["When", "Lane", "Episode", "Sites"].map((h) => el("th", {}, h)));
+      const body = eps.map((e) => clickableRow([
+        el("td", {}, e.startText + "–" + e.endText), el("td", {}, e.lane), el("td", {}, e.title),
+        el("td", {}, e.bursts.map((b) => el("div", {}, el("span", { class: "mono" }, b.key), " ", el("span", { class: "pill" }, b.category), " ", el("span", { class: "muted" }, b.lookups + " lookups")))),
+      ], () => showEpisode(e)));
+      box.append(el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, body))));
+    }
+    const unknown = [...new Set(eps.flatMap((e) => e.bursts.filter((b) => b.category === "unknown").map((b) => b.key)))];
+    if (unknown.length) {
+      box.append(el("h3", { style: "font-size:13px;margin:16px 0 4px;color:var(--text-secondary)" }, "Classify a site once; future reports use it"));
+      for (const key of unknown.slice(0, 12)) box.append(cmdBlock("querytale label " + key + " <category>"));
+    }
+    const apps = D.appActivity.filter((a) => laneOk(a.lane));
+    if (apps.length) {
+      const counts = {};
+      for (const a of apps) counts[a.key] = (counts[a.key] || 0) + 1;
+      box.append(el("p", { class: "sub", style: "margin-top:12px" }, "New app activity: " + apps.length + " ad/analytics SDK bursts, often a newly opened app (" +
+        Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, n]) => k + (n > 1 ? " ×" + n : "")).join(", ") + ")."));
+    }
+  }
+
+  // Drill-down ------------------------------------------------------------------------
+  const drill = $("drill");
+  function openDrill(title, ...content) {
+    $("drillBody").replaceChildren(el("h2", { id: "drillTitle" }, title), ...content);
+    drill.classList.add("open"); drill.setAttribute("aria-hidden", "false");
+    $("drillClose").focus();
+  }
+  function closeDrill() { drill.classList.remove("open"); drill.setAttribute("aria-hidden", "true"); }
+  $("drillClose").addEventListener("click", closeDrill);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrill(); });
+
+  function eventsBlock(events, query) {
+    if (!events) return [el("h3", {}, "Raw lookups"), el("p", { class: "sub" }, "Too many to embed. Run this for every lookup:"), cmdBlock(query)];
+    const head = el("tr", {}, D.eventColumns.map((c) => el("th", {}, c)));
+    const body = events.map((r) => el("tr", {}, r.map((v, i) => el("td", { class: i === 3 ? "mono" : null }, v))));
+    return [el("h3", {}, "Raw lookups (" + events.length + ")"), el("div", { class: "events" }, el("table", {}, el("thead", {}, head), el("tbody", {}, body))),
+      el("p", { class: "sub", style: "margin-top:6px" }, "Same rows, and CSV export, in the terminal:"), cmdBlock(query)];
+  }
+  function hostTable(rows, inferredCol) {
+    const head = el("tr", {}, el("th", {}, "Host"), el("th", { class: "num" }, "Lookups"));
+    return el("table", {}, el("thead", {}, head), el("tbody", {}, rows.map((h) => el("tr", {},
+      el("td", { class: "mono" }, h[0], inferredCol && h[2] ? el("span", { class: "pill", style: "margin-left:6px" }, "inferred owner") : null),
+      el("td", { class: "num" }, h[1])))));
+  }
+  function showSession(s) {
+    const r = rowById[s.row];
+    openDrill(r.name + " · " + r.lane,
+      el("p", { class: "sub" }, s.startText + "–" + s.endText + " · " + fmtMin(s.minutes)),
+      el("dl", {},
+        el("dt", {}, "Confidence"), el("dd", {}, s.confidence),
+        el("dt", {}, "Rate"), el("dd", {}, "mean " + s.mean + ", peak " + s.peak + " lookups per 3 min (threshold " + s.minRate + ")"),
+        el("dt", {}, "Lookups"), el("dd", {}, s.lookups),
+        el("dt", {}, "Devices"), el("dd", {}, s.devices.join(", ") || "–")),
+      el("h3", {}, "Top hosts"), hostTable(s.hosts, true),
+      ...eventsBlock(s.events, s.query));
+  }
+  function showEpisode(e) {
+    const parts = [el("p", { class: "sub" }, e.startText + "–" + e.endText + " · " + e.lane + " · " + e.lookups + " lookups")];
+    for (const b of e.bursts) {
+      parts.push(el("h3", {}, b.key));
+      parts.push(el("dl", {},
+        el("dt", {}, "Category"), el("dd", {}, b.category + (b.source ? " (from " + ({ label: "your label", nextdns: "NextDNS", ut1: "UT1 list" }[b.source] || b.source) + ")" : "")),
+        el("dt", {}, "Lookups"), el("dd", {}, b.lookups + ", " + b.startText + "–" + b.endText),
+        el("dt", {}, "History"), el("dd", {}, b.daysSeen === 0 ? "never seen in the prior 30 days" : "seen on " + b.daysSeen + " of the prior 30 days")));
+      parts.push(hostTable(b.hosts, false));
+      if (b.inferred) parts.push(el("p", { class: "sub" }, "Includes CDN hosts whose owner was inferred from history."));
+      if (b.category === "unknown") parts.push(cmdBlock("querytale label " + b.key + " <category>"));
+    }
+    if (e.nearby.length) {
+      parts.push(el("h3", {}, "Named sites within 30 seconds on the same device"));
+      parts.push(el("p", { class: "sub" }, "Context for hosts that can't be attributed, not a claim about who caused them."));
+      parts.push(hostTable(e.nearby, false));
+    }
+    openDrill(e.title, ...parts, ...eventsBlock(e.events, e.query));
+  }
+  function showBucket(i) {
+    const F = D.frequency, start = F.buckets[i];
+    const top = F.top[i] || [];
+    openDrill("Lookups at " + fmtTime(start),
+      el("p", { class: "sub" }, (F.minutes === 1 ? "One minute" : F.minutes + " minutes") + " from " + fmtTime(start) + ", all devices."),
+      el("h3", {}, "Top sites"), top.length ? hostTable(top, false) : el("p", { class: "empty" }, "No lookups."));
+  }
+
+  // Wiring ----------------------------------------------------------------------------
+  function renderAll() { renderTiles(); renderTimeline(); renderFreq(); renderSessions(); renderUnusual(); }
+  for (const b of $("lane").querySelectorAll("button")) {
+    b.addEventListener("click", () => {
+      state.lane = b.dataset.lane;
+      for (const o of $("lane").querySelectorAll("button")) o.setAttribute("aria-pressed", String(o === b));
+      renderTimeline(); renderFreq(); renderSessions(); renderUnusual();
+    });
+  }
+  $("showLow").addEventListener("change", (e) => { state.showLow = e.target.checked; renderTimeline(); renderSessions(); });
+  $("showHb").addEventListener("change", (e) => { state.showHb = e.target.checked; renderFreq(); });
+  $("logScale").addEventListener("change", (e) => { state.log = e.target.checked; renderFreq(); });
+
+  const legend = $("tlLegend");
+  const present = new Set(D.rows.map((r) => r.slot));
+  for (const c of D.categories) if (present.has(c.id)) legend.append(el("span", {}, el("span", { class: "swatch", style: "background:" + catColor(c.id) }), c.name));
+  if (present.has("unusual")) legend.append(el("span", {}, el("span", { class: "swatch", style: "background:" + catColor("unusual") }), "Unusual sites"));
+  legend.append(el("span", {}, el("span", { class: "run" }), "App running"), el("span", {}, el("span", { class: "run blocked" }), "Running, blocked"));
+  if (D.overlaps.length) legend.append(el("span", {}, el("span", { class: "ovl" }), "Overlap"));
+  legend.append(el("span", { class: "muted" }, "Faded: lower confidence"));
+
+  $("footer").textContent = "querytale " + M.version + " · DNS shows what was looked up, not what was looked at. This report is evidence for a conversation, not proof. It makes no network requests.";
+
+  renderAll();
+  renderHeat();
+  echarts.connect(charts.filter((c) => c === timeline || c === freq));
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    charts.forEach((c) => c.resize());
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderTimeline, 150); // label column depends on width
+  });
+  const scheme = matchMedia("(prefers-color-scheme: dark)");
+  scheme.addEventListener("change", () => { renderAll(); renderHeat(); });
+  document.documentElement.dataset.renderMs = String(Math.round(performance.now() - t0));
+})();
+</script>
+</body>
+</html>

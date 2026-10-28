@@ -25,6 +25,9 @@ PLAN.md is the design and milestone list; build one milestone at a time.
 - `attribution.py`: learns generic-host owners (name in hostname, then co-occurrence);
   relearned from full history on every refresh (~1 s for a year).
 - `novelty.py`: Detector B (rare sites, bursts, episodes, tracker demotion).
+- `report.py` + `templates/report.html`: the self-contained HTML report. ECharts is vendored
+  in `vendor/` (pinned 5.6.0, Apache-2.0) and inlined; a CSP blocks all network access.
+  Times are embedded as local wall-clock ms and rendered with `useUTC`.
 - `timewindow.py`: `--last/--date/--from/--to` parsing. `cli.py`: typer commands;
   `textreport.py`: terminal rendering.
 
@@ -42,6 +45,12 @@ PLAN.md is the design and milestone list; build one milestone at a time.
 - NextDNS roots can be odd (`com.akadns.net`), so generic checks match hostname suffixes.
 - Blocked lookups feed background patterns only (heartbeats, "app running", attribution),
   never sessions or unusual episodes.
+- In the report, data reaches the DOM only via `textContent`; ECharts tooltips (HTML strings)
+  go through `esc()`. Embedded JSON escapes `<`, `>` and `&` (`_script_json`).
+- Report colors: categories have fixed slots (games, video, school, social, ai; anything else
+  is gray "other"), validated light and dark with the dataviz palette script.
+- To check the report visually: Playwright with the cached Chromium, e.g.
+  `uv run --no-project --with playwright python -I shoot.py report.html out.png`.
 - Escape every data value (hostnames, device and service names, regexes, errors) with
   `rich.markup.escape` before printing; `[a-z0-9]` in a regex is otherwise eaten as markup.
 - Everything written is private: the CLI sets umask 077; dirs 0700, files 0600.

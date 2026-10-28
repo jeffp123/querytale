@@ -1,0 +1,17 @@
+id: youtube
+name: YouTube
+category: video
+domains:
+  - youtube.com
+  - googlevideo.com
+  - ytimg.com
+  - youtu.be
+  - youtube-nocookie.com
+  - youtubekids.com
+hosts:
+  - youtubei.googleapis.com
+  - yt3.ggpht.com
+min_rate: 6
+min_duration: 5m
+max_gap: 5m
+verified: false

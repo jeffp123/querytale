@@ -1,0 +1,17 @@
+id: steam
+name: Steam
+category: games
+domains:            # matches the domain and all subdomains
+  - steampowered.com
+  - steamcommunity.com
+  - steamstatic.com
+  - steamcontent.com
+  - steamserver.net
+  - steamusercontent.com
+  - steam-chat.com
+heartbeat:          # counted as "app running", not as activity
+  - regex: '^p2p-[a-z0-9]+\.discovery\.steamserver\.net$'
+min_rate: 4         # lookups per rolling 3 minutes to count as active
+min_duration: 5m
+max_gap: 5m
+verified: false

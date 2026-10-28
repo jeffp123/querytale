@@ -34,6 +34,11 @@ class Config:
     phone_devices: list[str] = field(default_factory=list)
     computer_devices: list[str] = field(default_factory=list)
     backfill_days: int = 30
+    # Known-quiet windows used for calibration: [{name, start: "fri 20:30", end: "sat 17:00"}].
+    quiet: list[dict] = field(default_factory=list)
+    shabbat: bool = False  # built-in candle lighting to nightfall window; needs a location
+    latitude: float | None = None
+    longitude: float | None = None
     path: Path | None = None
 
     def profile(self, label: str) -> Profile:
@@ -74,12 +79,17 @@ def load(path: Path | None = None) -> Config:
         for label, p in raw.get("profiles", {}).items()
     }
     lanes = raw.get("lanes", {})
+    location = raw.get("location", {})
     return Config(
         profiles=profiles,
         timezone=raw.get("timezone"),
         phone_devices=list(lanes.get("phone", [])),
         computer_devices=list(lanes.get("computer", [])),
         backfill_days=int(raw.get("sync", {}).get("backfill_days", 30)),
+        quiet=list(raw.get("quiet", [])),
+        shabbat=bool(raw.get("shabbat", False)),
+        latitude=location.get("latitude"),
+        longitude=location.get("longitude"),
         path=path,
     )
 
@@ -90,8 +100,14 @@ def save(cfg: Config) -> Path:
     doc: dict = {}
     if cfg.timezone:
         doc["timezone"] = cfg.timezone
+    if cfg.shabbat:
+        doc["shabbat"] = True
+    if cfg.latitude is not None and cfg.longitude is not None:
+        doc["location"] = {"latitude": cfg.latitude, "longitude": cfg.longitude}
     doc["sync"] = {"backfill_days": cfg.backfill_days}
     doc["lanes"] = {"phone": cfg.phone_devices, "computer": cfg.computer_devices}
+    if cfg.quiet:
+        doc["quiet"] = cfg.quiet
     doc["profiles"] = {
         p.label: {"id": p.id, "nextdns_name": p.nextdns_name} for p in cfg.profiles.values()
     }

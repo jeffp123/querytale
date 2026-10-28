@@ -15,15 +15,21 @@ from zoneinfo import ZoneInfo
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
 from querytale import __version__, config, keystore, paths
 from querytale.api import ApiError, NextDNSClient, ReadOnlyViolation
 from querytale.config import Config, ConfigError, Profile
+from querytale.derive import ensure_minute_service
 from querytale.importer import import_csv
+from querytale.quiet import quiet_intervals
+from querytale.services import ServiceError, load_services, user_services_dir
+from querytale.sessions import analyze
 from querytale.store import Store
 from querytale.sync import SyncLocked, SyncResult, sync_lock, sync_profile
+from querytale.textreport import Clock, render_calibrate, render_services, render_summary
 from querytale.timewindow import WindowError, parse_duration, parse_window
 
 app = typer.Typer(
@@ -34,7 +40,9 @@ app = typer.Typer(
 console = Console()
 err = Console(stderr=True)
 
-KNOWN_ERRORS = (ApiError, ConfigError, ReadOnlyViolation, SyncLocked, WindowError, ValueError)
+KNOWN_ERRORS = (
+    ApiError, ConfigError, ReadOnlyViolation, ServiceError, SyncLocked, WindowError, ValueError,
+)  # fmt: skip
 
 
 def handle_errors(fn: Callable) -> Callable:
@@ -43,7 +51,7 @@ def handle_errors(fn: Callable) -> Callable:
         try:
             return fn(*args, **kwargs)
         except KNOWN_ERRORS as e:
-            err.print(f"[red]Error:[/red] {e}")
+            err.print(f"[red]Error:[/red] {escape(str(e))}")
             raise typer.Exit(1) from None
         except KeyboardInterrupt:
             err.print("\n[yellow]Interrupted.[/yellow] Synced pages are kept; run again to resume.")
@@ -201,7 +209,7 @@ def init(
     table = Table("Profile id", "Name", "Label", title="NextDNS profiles")
     known = {p.id: p.label for p in cfg.profiles.values()}
     for p in profiles:
-        table.add_row(p["id"], p.get("name", ""), known.get(p["id"], ""))
+        table.add_row(escape(p["id"]), escape(p.get("name", "")), known.get(p["id"], ""))
     console.print(table)
     console.print(
         "Give each person's profile a short label, e.g. [bold]alex[/bold]. "
@@ -342,19 +350,90 @@ def query(
 
     truncated = len(rows) > limit
     rows = rows[:limit]
-    table = Table(title=f"{profile.label} · {window.label}" + (f" · /{match}/" if match else ""))
+    title = f"{profile.label} · {window.label}" + (f" · /{match}/" if match else "")
+    table = Table(title=escape(title))
     for col in ("Time", "Lane", "Device", "Domain", "Types", "Status"):
         table.add_column(col, no_wrap=col in ("Time", "Domain"))
     for ts, lane_, device, domain, _root, qtypes, status, reasons, _tracker in rows:
         shown = f"[red]{status}[/red]" if status == "blocked" else status
         if reasons and status == "blocked":
-            shown += f" [dim]{reasons}[/dim]"
-        table.add_row(f"{local(ts):%a %m-%d %H:%M:%S}", lane_, device or "", domain, qtypes, shown)
+            shown += f" [dim]{escape(reasons)}[/dim]"
+        table.add_row(
+            f"{local(ts):%a %m-%d %H:%M:%S}", lane_, escape(device or ""), escape(domain), qtypes,
+            shown,
+        )  # fmt: skip
     console.print(table)
     note = f"{len(rows):,} events"
     if truncated:
         note = f"first {limit:,} events shown; use --limit or --csv for all"
     console.print(f"[dim]{note}[/dim]")
+
+
+@app.command()
+@handle_errors
+def summary(
+    label: Annotated[str, typer.Argument(help="Profile label.")],
+    last: Annotated[str | None, typer.Option(help="e.g. 6h, 3d (default 24h).")] = None,
+    date: Annotated[str | None, typer.Option(help="A local day, YYYY-MM-DD.")] = None,
+    from_: Annotated[str | None, typer.Option("--from", help="Local start time.")] = None,
+    to: Annotated[str | None, typer.Option(help="Local end time (default now).")] = None,
+    show_low: Annotated[bool, typer.Option(help="Also list low-confidence bursts.")] = False,
+    no_sync: Annotated[bool, typer.Option("--no-sync", help="Use local data only.")] = False,
+) -> None:
+    """Sessions, app-running time, overlaps and silent stretches, as text."""
+    cfg = config.load()
+    profile = cfg.profile(label)
+    window = parse_window(last=last, on_date=date, from_=from_, to=to, tz=cfg.tz())
+    services = load_services()
+    with Store.open() as store:
+        maybe_sync(store, cfg, profile, no_sync)
+        ensure_minute_service(store, profile.id, services)
+        result = analyze(store, profile.id, services, window.start, window.end)
+        last_sync = store.get_sync_state(profile.id).last_run_at
+    render_summary(console, label, window.label, result, Clock(cfg.tz()), last_sync,
+                   include_low=show_low)  # fmt: skip
+
+
+@app.command()
+@handle_errors
+def calibrate(
+    service: Annotated[str, typer.Argument(help="Service id, see `querytale services`.")],
+    label: Annotated[str, typer.Argument(help="Profile label.")],
+    last: Annotated[str, typer.Option(help="How far back to look.")] = "30d",
+    no_sync: Annotated[bool, typer.Option("--no-sync", help="Use local data only.")] = False,
+) -> None:
+    """Per-minute count histograms for one service, to tune its thresholds."""
+    cfg = config.load()
+    profile = cfg.profile(label)
+    window = parse_window(last=last, tz=cfg.tz())
+    services = load_services()
+    if service not in services:
+        raise ConfigError(f"Unknown service {service!r}; see `querytale services`.")
+    with Store.open() as store:
+        maybe_sync(store, cfg, profile, no_sync)
+        ensure_minute_service(store, profile.id, services)
+        rows = store.con.execute(
+            """
+            SELECT minute, lane, n_allowed, n_blocked, hb_allowed, hb_blocked
+            FROM minute_service
+            WHERE profile_id = ? AND service = ? AND minute >= ? AND minute < ?
+            ORDER BY minute
+            """,
+            [profile.id, service, window.start, window.end],
+        ).fetchall()
+        result = analyze(store, profile.id, {service: services[service]}, window.start,
+                         window.end, details=False)  # fmt: skip
+    quiet = quiet_intervals(cfg, window.start, window.end)
+    render_calibrate(console, services[service], rows, result, quiet, Clock(cfg.tz()),
+                     window.label)  # fmt: skip
+
+
+@app.command("services")
+@handle_errors
+def services_() -> None:
+    """List configured services and their patterns."""
+    render_services(console, load_services())
+    console.print(f"[dim]Add or override services with YAML files in {user_services_dir()}[/dim]")
 
 
 if __name__ == "__main__":

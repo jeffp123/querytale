@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from querytale import paths
+from querytale import derive, paths
 from querytale.api import NextDNSClient
 from querytale.config import Config, Profile
 from querytale.store import Store, utc_naive
@@ -180,5 +180,5 @@ def sync_profile(
     store.put_sync_state(state)
     result.end = store.event_range(profile.id)[1]
     if result.added:
-        store.rebuild_domain_daily(profile.id, min(result.start, start), cfg.tz())
+        derive.refresh(store, cfg, profile.id, min(result.start, start))
     return result

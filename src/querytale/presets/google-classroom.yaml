@@ -1,0 +1,10 @@
+id: google-classroom
+name: Google Classroom
+category: school
+hosts:              # exact hostnames: google.com as a whole would match far too much
+  - classroom.google.com
+  - classroom.googleapis.com
+min_rate: 2         # DNS caching hides steady use: 1 to 2 lookups a minute is normal
+min_duration: 5m
+max_gap: 5m
+verified: false

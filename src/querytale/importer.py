@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from querytale import derive
 from querytale.config import Config, Profile
 from querytale.store import Store
 
@@ -40,5 +41,5 @@ def import_csv(store: Store, cfg: Config, profile: Profile, path: Path) -> Impor
         store.con.rollback()
         raise
     if merged.added:
-        store.rebuild_domain_daily(profile.id, merged.first_ts, cfg.tz())
+        derive.refresh(store, cfg, profile.id, merged.first_ts)
     return ImportResult(rows, merged.added, merged.first_ts, merged.last_ts)

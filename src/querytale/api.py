@@ -153,15 +153,22 @@ class NextDNSClient:
         end: datetime | None = None,
         limit: int = PAGE_LIMIT,
     ) -> Iterator[list[dict]]:
-        """Yield pages of raw log entries, oldest first, following the cursor to the end."""
+        """Yield pages of raw log entries, oldest first, following the cursor to the end.
+
+        The live API never ends a sorted listing with a null cursor: past the newest entry it
+        keeps answering with an empty page and the same cursor. An empty page or a repeated
+        cursor is therefore the end.
+        """
         params: dict[str, Any] = {"raw": 1, "sort": "asc", "from": _iso(start), "limit": limit}
         if end is not None:
             params["to"] = _iso(end)
         while True:
             body = self.get(f"/profiles/{profile_id}/logs", params)
-            yield body.get("data", [])
+            page = body.get("data") or []
+            if page:
+                yield page
             cursor = ((body.get("meta") or {}).get("pagination") or {}).get("cursor")
-            if not cursor:
+            if not page or not cursor or cursor == params.get("cursor"):
                 return
             params["cursor"] = cursor
 

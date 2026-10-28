@@ -138,6 +138,8 @@ class FakeNextDNS:
         offset = int(params.get("cursor", 0))
         limit = int(params.get("limit", 100))
         page = rows[offset : offset + limit]
-        cursor = str(offset + limit) if offset + limit < len(rows) else None
+        # Like the live API: the cursor never becomes null. Past the end, it keeps returning
+        # empty pages with the same cursor.
+        cursor = str(min(offset + limit, len(rows)))
         body = {"data": page, "meta": {"pagination": {"cursor": cursor}}}
         return httpx.Response(200, content=json.dumps(body))

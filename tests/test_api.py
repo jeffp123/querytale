@@ -71,3 +71,26 @@ def test_log_pages_follow_cursor():
     assert fake.requests[0].url.params["raw"] == "1"
     assert fake.requests[0].url.params["from"] == "2026-10-28T00:00:00.000Z"
     assert fake.requests[1].url.params["cursor"] == "10"
+
+
+def test_log_pages_end_although_the_cursor_never_becomes_null():
+    # The live API answers past the newest entry with an empty page and the same cursor,
+    # forever; following it hung the first real sync.
+    entries = [entry(datetime(2026, 10, 28, 10, 0, i), f"site{i}.com") for i in range(20)]
+    fake = FakeNextDNS(entries)
+    with client_for(fake) as client:
+        pages = list(client.iter_log_pages(PROFILE_ID, start=datetime(2026, 10, 28), limit=10))
+        assert [len(p) for p in pages] == [10, 10]
+        assert len(fake.requests) == 3  # the third page is empty
+        assert list(client.iter_log_pages(PROFILE_ID, start=datetime(2026, 10, 29))) == []
+
+
+def test_log_pages_stop_on_a_repeated_cursor():
+    def handle(request: httpx.Request) -> httpx.Response:
+        body = {"data": [entry(datetime(2026, 10, 28, 10), "a.com")],
+                "meta": {"pagination": {"cursor": "same"}}}  # fmt: skip
+        return httpx.Response(200, json=body)
+
+    with NextDNSClient(API_KEY, transport=httpx.MockTransport(handle)) as client:
+        pages = list(client.iter_log_pages(PROFILE_ID, start=datetime(2026, 10, 28)))
+    assert len(pages) == 2  # first request, then the cursor it gave back once

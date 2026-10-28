@@ -126,7 +126,7 @@ def print_sync_results(results: list[SyncResult]) -> None:
     for r in results:
         console.print(
             f"[bold]{r.label}[/bold]: {r.added:,} new lookup events "
-            f"from {r.rows:,} log rows in {r.pages:,} request{'s' if r.pages != 1 else ''}"
+            f"from {r.rows:,} log rows in {r.pages:,} page{'s' if r.pages != 1 else ''}"
         )
 
 

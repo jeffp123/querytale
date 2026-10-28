@@ -46,7 +46,7 @@ def test_sync_after_import_adds_only_newer_rows(store, cfg, tmp_path):
     assert result.added == 2
     assert store.con.execute("SELECT count(*) FROM events").fetchone()[0] == before + 2
     # The export covered the backfill window, so the sync asked only for the last minutes.
-    assert len(fake.requests) == 1
+    assert len(fake.requests) == 2  # one page of new rows, then the empty page that ends it
     assert fake.requests[0].url.params["from"] >= "2026-10-28T10:"
 
 

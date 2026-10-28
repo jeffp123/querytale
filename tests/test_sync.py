@@ -68,7 +68,7 @@ def test_incremental_sync_fetches_only_new_minutes(store, cfg):
     fake = FakeNextDNS(later)
     result = run(store, cfg, fake, now=NOW + timedelta(hours=1))
     assert result.added == 1
-    assert len(fake.requests) == 1
+    assert len(fake.requests) == 2  # one page, then the empty page that ends it
 
 
 def test_deeper_backfill_extends_history(store, cfg):

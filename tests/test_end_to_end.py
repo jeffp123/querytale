@@ -42,7 +42,7 @@ def test_init_sync_query_summary_report(fake, tmp_path):
     before = len(fake.requests)
     result = runner.invoke(cli.app, ["sync"])
     assert result.exit_code == 0, result.output
-    assert len(fake.requests) - before == 1
+    assert len(fake.requests) - before == 2  # one page, then the empty page that ends it
     assert "0 new lookup events" in result.output
 
     result = runner.invoke(cli.app, ["query", "alex", "--last", "6h", "--match", "steampowered",

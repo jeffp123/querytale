@@ -1,0 +1,15 @@
+# Local data: a child's browsing history never belongs in git
+*.duckdb
+*.duckdb.wal
+*.csv
+reports/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

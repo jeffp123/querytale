@@ -40,6 +40,15 @@ def _iso(ts: datetime) -> str:
     return ts.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
+def _download_url(body: dict) -> str:
+    """The export URL from a redirect=0 response; tolerate the shapes the docs leave open."""
+    data = body.get("data", body)
+    url = data.get("url") if isinstance(data, dict) else data
+    if not isinstance(url, str) or not url.startswith("https://"):
+        raise ApiError("NextDNS did not return a download link for the log export")
+    return url
+
+
 class NextDNSClient:
     def __init__(
         self,
@@ -76,12 +85,20 @@ class NextDNSClient:
     def redact(self, text: str) -> str:
         return text.replace(self._key, "***") if self._key else text
 
-    def request(self, method: str, path: str, params: dict[str, Any] | None = None) -> dict:
+    def request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        *,
+        timeout: float | None = None,
+    ) -> dict:
         if method.upper() != "GET":
             raise ReadOnlyViolation(f"querytale is read-only; refusing {method.upper()} {path}")
+        extra = {"timeout": timeout} if timeout else {}
         for attempt in range(self._max_retries + 1):
             try:
-                resp = self._http.get(path, params=params)
+                resp = self._http.get(path, params=params, **extra)
             except ReadOnlyViolation:
                 raise
             except httpx.TransportError as e:
@@ -156,7 +173,11 @@ class NextDNSClient:
         The API returns a short-lived signed URL; that file is fetched without the API key,
         through a client with the same GET-only guard.
         """
-        url = self.get(f"/profiles/{profile_id}/logs/download", {"redirect": 0})["data"]["url"]
+        # NextDNS generates the file before answering, which can take minutes for a year.
+        body = self.request(
+            "GET", f"/profiles/{profile_id}/logs/download", {"redirect": 0}, timeout=600
+        )
+        url = _download_url(body)
         with (
             httpx.Client(
                 transport=self._transport,

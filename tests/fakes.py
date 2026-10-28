@@ -11,6 +11,7 @@ import httpx
 
 PROFILE_ID = "abc123"
 API_KEY = "test-key-0123456789"
+EXPORT_URL = "https://exports.example.net/abc123.csv"
 
 PHONE = {"id": "PH0NE", "name": "Alex's iPhone", "model": "iPhone 13", "localIp": None}
 LAPTOP = {"id": "L4PT0", "name": "alex-laptop", "model": "Windows", "localIp": "192.168.1.20"}
@@ -98,12 +99,16 @@ class FakeNextDNS:
         self.requests: list[httpx.Request] = []
         self.fail_on_request = fail_on_request
         self.rate_limit_next = 0
+        self.export_csv = b""
 
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self.handle)
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
+        if str(request.url) == EXPORT_URL:
+            assert "X-Api-Key" not in request.headers  # the key never leaves api.nextdns.io
+            return httpx.Response(200, content=self.export_csv)
         if self.fail_on_request and len(self.requests) == self.fail_on_request:
             raise KeyboardInterrupt  # simulate Ctrl-C mid-sync
         if request.headers.get("X-Api-Key") != API_KEY:
@@ -116,6 +121,9 @@ class FakeNextDNS:
             return httpx.Response(200, json={"data": [{"id": PROFILE_ID, "name": "Alex"}]})
         if path == f"/profiles/{PROFILE_ID}/logs":
             return self.logs(request.url.params)
+        if path == f"/profiles/{PROFILE_ID}/logs/download":
+            assert request.url.params["redirect"] == "0"
+            return httpx.Response(200, json={"data": {"url": EXPORT_URL}})
         return httpx.Response(404, json={"errors": [{"code": "notFound"}]})
 
     def logs(self, params: httpx.QueryParams) -> httpx.Response:

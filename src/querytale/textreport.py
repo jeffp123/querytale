@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+from querytale.novelty import Unusual
 from querytale.quiet import QuietInterval
 from querytale.services import Service
 from querytale.sessions import Analysis, Session
@@ -54,6 +55,7 @@ def render_summary(
     analysis: Analysis,
     clock: Clock,
     last_sync: datetime | None,
+    unusual: Unusual | None = None,
     *,
     include_low: bool = False,
 ) -> None:
@@ -68,6 +70,7 @@ def render_summary(
     console.print(
         "Active time: " + (" · ".join(parts) if parts else "no sessions")
         + f"   Overlaps: [bold]{len(a.overlaps)}[/bold]"
+        + (f"   Unusual episodes: [bold]{len(unusual.episodes)}[/bold]" if unusual else "")
     )  # fmt: skip
 
     sessions = a.visible_sessions(include_low)
@@ -77,7 +80,9 @@ def render_summary(
             table.add_column(col, no_wrap=col != "Top hosts")
         for s in sessions:
             style = CONFIDENCE_STYLE[s.confidence]
-            hosts = escape(", ".join(h for h, _ in s.top_hosts[:3]))
+            hosts = escape(", ".join(
+                h + (" (inferred)" if h in s.inferred else "") for h, _ in s.top_hosts[:3]
+            ))  # fmt: skip
             table.add_row(
                 clock.span(s.start, s.end), fmt_duration(s.duration),
                 escape(s.service.name), s.lane, s.confidence, f"{s.mean:g}/3m", hosts,
@@ -115,6 +120,9 @@ def render_summary(
             console.print(
                 f"  {g.lane}: {clock.span(g.start, g.end)} ({fmt_duration(g.end - g.start)})"
             )
+
+    if unusual is not None:
+        render_unusual(console, unusual, clock)
 
 
 def _histogram(console: Console, title: str, values: list[int], mark: int | None = None) -> None:
@@ -239,3 +247,46 @@ def render_services(console: Console, services: dict[str, Service]) -> None:
                 console.print(f"  {kind}s: " + escape(", ".join(values)))
         if s.heartbeat:
             console.print("  heartbeat: " + escape(", ".join(p.value for p in s.heartbeat)))
+
+
+def render_unusual(
+    console: Console, unusual: Unusual, clock: Clock, *, heading: bool = True
+) -> None:
+    if heading:
+        console.print("\n[bold]Unusual sites[/bold] (rare for this profile, seen in clusters)")
+    if unusual.warming_up:
+        since = clock.at(unusual.history_from) if unusual.history_from else "never"
+        console.print(
+            f"[yellow]Warming up:[/yellow] history starts {since}; rarity needs 30 days before "
+            "the window, so more sites look rare than really are."
+        )
+    if not unusual.episodes:
+        console.print("  No unusual episodes.")
+    to_label: dict[str, None] = {}
+    for e in unusual.episodes:
+        console.print(f"  [bold]{clock.span(e.start, e.end)}[/bold] {e.lane}: {escape(e.title())}")
+        for b in e.bursts:
+            hosts = ", ".join(h for h, _ in b.hosts[:3]) + (" …" if len(b.hosts) > 3 else "")
+            source = f" via {b.category_source}" if b.category_source else ""
+            seen = "new" if b.days_seen == 0 else f"seen {b.days_seen} of 30 days"
+            inferred = " [dim](includes inferred CDN hosts)[/dim]" if b.inferred else ""
+            console.print(
+                f"    {escape(b.key)} [dim]{escape(b.category)}{source}[/dim] · {b.lookups} "
+                f"lookups {clock.span(b.start, b.end)} · {seen} · {escape(hosts)}{inferred}"
+            )
+            if b.category == "unknown":
+                to_label[b.key] = None
+    if unusual.app_activity:
+        keys = Counter(b.key for b in unusual.app_activity)
+        shown = ", ".join(
+            f"{escape(k)}" + (f" ×{n}" if n > 1 else "") for k, n in keys.most_common(6)
+        )
+        more = f" and {len(keys) - 6} more" if len(keys) > 6 else ""
+        console.print(
+            f"  [dim]New app activity: {len(unusual.app_activity)} ad/analytics SDK bursts "
+            f"(often a newly opened app): {shown}{more}[/dim]"
+        )
+    if to_label:
+        console.print("  [dim]Classify a site once and future reports use it:[/dim]")
+        for key in list(to_label)[:5]:
+            console.print(f"    [dim]querytale label {escape(key)} <category>[/dim]")

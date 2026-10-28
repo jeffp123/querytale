@@ -1,0 +1,6 @@
+ut1.tsv.gz is derived from the UT1 web blacklists, maintained by Fabrice Prigent at
+Université Toulouse Capitole: https://dsi.ut-capitole.fr/blacklists/
+
+Licensed under the Creative Commons Attribution-ShareAlike 4.0 International License
+(https://creativecommons.org/licenses/by-sa/4.0/). querytale keeps a subset of categories
+and renames them; scripts/build_ut1_snapshot.py shows exactly how.

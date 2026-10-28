@@ -20,6 +20,11 @@ PLAN.md is the design and milestone list; build one milestone at a time.
   when the services fingerprint changes (about 2.5 s for a year).
 - `sessions.py`: Detector A (sessions, confidence, app-running, overlaps, silent stretches).
 - `quiet.py`: quiet windows (weekly and Shabbat via astral), calibration only.
+- `domains.py`: generic (CDN/hosting) suffixes, tracker SDK list, categories (labels file >
+  NextDNS reasons > bundled UT1 snapshot in `data/`, rebuilt by `scripts/build_ut1_snapshot.py`).
+- `attribution.py`: learns generic-host owners (name in hostname, then co-occurrence);
+  relearned from full history on every refresh (~1 s for a year).
+- `novelty.py`: Detector B (rare sites, bursts, episodes, tracker demotion).
 - `timewindow.py`: `--last/--date/--from/--to` parsing. `cli.py`: typer commands;
   `textreport.py`: terminal rendering.
 
@@ -32,6 +37,9 @@ PLAN.md is the design and milestone list; build one milestone at a time.
 - `events` is lossless at the natural key (profile, ts, domain, device_id). The router path
   (`nextdns-cli`) logs A/HTTPS a few ms apart rather than at the identical timestamp, so
   `minute_service` folds same (device, domain) events less than 1 s apart (`derive.FOLD`).
+- A "site key" is the root, or the full host for generic hosts (`site_key()` SQL macro);
+  `domain_daily` is keyed by it. Attributed generic hosts count toward their owner.
+- NextDNS roots can be odd (`com.akadns.net`), so generic checks match hostname suffixes.
 - Blocked lookups feed background patterns only (heartbeats, "app running", attribution),
   never sessions or unusual episodes.
 - Escape every data value (hostnames, device and service names, regexes, errors) with

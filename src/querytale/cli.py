@@ -19,17 +19,24 @@ from rich.markup import escape
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
-from querytale import __version__, config, keystore, paths
+from querytale import __version__, config, derive, keystore, paths
 from querytale.api import ApiError, NextDNSClient, ReadOnlyViolation
 from querytale.config import Config, ConfigError, Profile
-from querytale.derive import ensure_minute_service
+from querytale.domains import IGNORE, load_labels, normalize_domain, save_labels
 from querytale.importer import import_csv
+from querytale.novelty import find_unusual
 from querytale.quiet import quiet_intervals
 from querytale.services import ServiceError, load_services, user_services_dir
 from querytale.sessions import analyze
 from querytale.store import Store
 from querytale.sync import SyncLocked, SyncResult, sync_lock, sync_profile
-from querytale.textreport import Clock, render_calibrate, render_services, render_summary
+from querytale.textreport import (
+    Clock,
+    render_calibrate,
+    render_services,
+    render_summary,
+    render_unusual,
+)  # fmt: skip
 from querytale.timewindow import WindowError, parse_duration, parse_window
 
 app = typer.Typer(
@@ -387,11 +394,76 @@ def summary(
     services = load_services()
     with Store.open() as store:
         maybe_sync(store, cfg, profile, no_sync)
-        ensure_minute_service(store, profile.id, services)
+        derive.ensure(store, cfg, profile.id, services)
         result = analyze(store, profile.id, services, window.start, window.end)
+        unusual = find_unusual(store, profile.id, services, window.start, window.end, cfg.tz())
         last_sync = store.get_sync_state(profile.id).last_run_at
-    render_summary(console, label, window.label, result, Clock(cfg.tz()), last_sync,
+    render_summary(console, label, window.label, result, Clock(cfg.tz()), last_sync, unusual,
                    include_low=show_low)  # fmt: skip
+
+
+@app.command()
+@handle_errors
+def unusual(
+    label: Annotated[str, typer.Argument(help="Profile label.")],
+    last: Annotated[str | None, typer.Option(help="e.g. 24h, 7d (default 7d).")] = None,
+    date: Annotated[str | None, typer.Option(help="A local day, YYYY-MM-DD.")] = None,
+    from_: Annotated[str | None, typer.Option("--from", help="Local start time.")] = None,
+    to: Annotated[str | None, typer.Option(help="Local end time (default now).")] = None,
+    no_sync: Annotated[bool, typer.Option("--no-sync", help="Use local data only.")] = False,
+) -> None:
+    """Rare sites that showed up in clusters (novelty episodes) only."""
+    cfg = config.load()
+    profile = cfg.profile(label)
+    window = parse_window(last=last, on_date=date, from_=from_, to=to, tz=cfg.tz(),
+                          default_last="7d")  # fmt: skip
+    services = load_services()
+    with Store.open() as store:
+        maybe_sync(store, cfg, profile, no_sync)
+        derive.ensure(store, cfg, profile.id, services)
+        found = find_unusual(store, profile.id, services, window.start, window.end, cfg.tz())
+    clock = Clock(cfg.tz())
+    console.print(f"[bold]{label}[/bold] · {window.label} ({clock.span(window.start, window.end)})")
+    render_unusual(console, found, clock, heading=False)
+
+
+@app.command()
+@handle_errors
+def label(
+    domain: Annotated[str, typer.Argument(help="A site, e.g. crazygames.com (subdomains too).")],
+    category: Annotated[
+        str | None, typer.Argument(help=f"e.g. games, school, social; '{IGNORE}' hides it.")
+    ] = None,
+    remove: Annotated[bool, typer.Option("--remove", help="Delete this label.")] = False,
+) -> None:
+    """Classify a site once; every future report uses it."""
+    key = normalize_domain(domain)
+    labels = load_labels()
+    if remove:
+        if labels.pop(key, None) is None:
+            raise ConfigError(f"No label for {key}")
+        save_labels(labels)
+        console.print(f"Removed the label for {escape(key)}.")
+        return
+    if not category:
+        raise ConfigError("Give a CATEGORY, or --remove.")
+    labels[key] = category.strip().lower()
+    save_labels(labels)
+    console.print(f"{escape(key)} → [bold]{escape(labels[key])}[/bold]")
+
+
+@app.command()
+@handle_errors
+def labels() -> None:
+    """List your site labels."""
+    current = load_labels()
+    if not current:
+        console.print("No labels yet. Add one with `querytale label DOMAIN CATEGORY`.")
+        return
+    table = Table("Site", "Category", show_edge=False)
+    for key, category in sorted(current.items(), key=lambda kv: (kv[1], kv[0])):
+        table.add_row(escape(key), escape(category))
+    console.print(table)
 
 
 @app.command()
@@ -411,7 +483,7 @@ def calibrate(
         raise ConfigError(f"Unknown service {service!r}; see `querytale services`.")
     with Store.open() as store:
         maybe_sync(store, cfg, profile, no_sync)
-        ensure_minute_service(store, profile.id, services)
+        derive.ensure(store, cfg, profile.id, services)
         rows = store.con.execute(
             """
             SELECT minute, lane, n_allowed, n_blocked, hb_allowed, hb_blocked

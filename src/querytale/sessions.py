@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from statistics import median
 
+from querytale import attribution
 from querytale.services import CONFIDENCES, Service
 from querytale.store import Store
 
@@ -32,6 +33,7 @@ class Session:
     confidence: str
     devices: list[str] = field(default_factory=list)
     top_hosts: list[tuple[str, int]] = field(default_factory=list)
+    inferred: set[str] = field(default_factory=set)  # hosts counted via a learned CDN owner
 
     @property
     def duration(self) -> timedelta:
@@ -225,15 +227,16 @@ def analyze(
     ]
     running.sort(key=lambda r: (r.service.id, r.lane, r.start))
     if details:
+        owners = attribution.owners(store, profile_id)
         for s in sessions:
-            _add_details(store, profile_id, s)
+            _add_details(store, profile_id, s, owners)
     return Analysis(
         start, end, sessions, running, find_overlaps(sessions),
         silent_gaps(store, profile_id, start, end, gap_threshold),
     )  # fmt: skip
 
 
-def _add_details(store: Store, profile_id: str, s: Session) -> None:
+def _add_details(store: Store, profile_id: str, s: Session, owners: dict[str, str]) -> None:
     rows = store.con.execute(
         """
         SELECT domain, coalesce(device_name, device_id), count(*)
@@ -246,9 +249,14 @@ def _add_details(store: Store, profile_id: str, s: Session) -> None:
     hosts: dict[str, int] = defaultdict(int)
     devices: dict[str, int] = defaultdict(int)
     for domain, device, n in rows:
-        if s.service.matches(domain) and not s.service.is_heartbeat(domain):
+        if s.service.is_heartbeat(domain):
+            continue
+        owner = owners.get(domain)
+        if s.service.matches(domain) or (owner and s.service.owns(owner)):
             hosts[domain] += n
             devices[device or "?"] += n
+            if not s.service.matches(domain):
+                s.inferred.add(domain)
     s.top_hosts = sorted(hosts.items(), key=lambda kv: -kv[1])[:5]
     s.devices = [d for d, _ in sorted(devices.items(), key=lambda kv: -kv[1])]
 

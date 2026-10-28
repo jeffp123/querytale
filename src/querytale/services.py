@@ -59,6 +59,10 @@ class Service:
     def matches(self, host: str) -> bool:
         return any(p.matches(host) for p in self.patterns) or self.is_heartbeat(host)
 
+    def owns(self, root: str) -> bool:
+        """Whether a learned generic-host owner belongs here (domain patterns only)."""
+        return any(p.kind == "domain" and p.matches(root) for p in self.patterns)
+
     def is_heartbeat(self, host: str) -> bool:
         return any(p.matches(host) for p in self.heartbeat)
 

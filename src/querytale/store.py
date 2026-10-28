@@ -19,6 +19,7 @@ import duckdb
 
 from querytale import paths
 from querytale.config import Config
+from querytale.domains import SQL_MACROS
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS sync_state (
 CREATE TABLE IF NOT EXISTS domain_daily (
     profile_id VARCHAR NOT NULL,
     day DATE NOT NULL,             -- local day
-    root VARCHAR NOT NULL,
+    root VARCHAR NOT NULL,         -- site key: the root, or the full host for generic hosts
     n INTEGER,                     -- allowed (non-blocked) lookup events
     n_blocked INTEGER,
     first_seen_ts TIMESTAMP,
@@ -171,6 +172,7 @@ class Store:
     def __init__(self, con: duckdb.DuckDBPyConnection) -> None:
         self.con = con
         self.con.execute(SCHEMA)
+        self.con.execute(SQL_MACROS)
 
     @classmethod
     def open(cls, path: Path | None = None) -> Store:
@@ -358,7 +360,7 @@ class Store:
                    count(*) FILTER (WHERE status = 'blocked'),
                    min(ts), max(ts)
             FROM (
-                SELECT profile_id, status, ts, coalesce(root, domain) AS root,
+                SELECT profile_id, status, ts, site_key(domain, root) AS root,
                        CAST(timezone($tz, timezone('UTC', ts)) AS DATE) AS day
                 FROM events
                 WHERE profile_id = $pid AND ts >= $lower
